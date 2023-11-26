@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int            @id @default(autoincrement())
+  email           String         @unique
+  name            String?
+  password        String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  roles           Role[]
+  orgs            Organization[]
+  expenses        Expense[]      @relation("UserExpenses")
+  outstandingFees Expense[]      @relation("UserOutstandingMembershipFees")
+  Earning         Earning[]
+}
+
+model Organization {
+  id              Int             @id @default(autoincrement())
+  name            String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  balance         Float
+  users           User[]
+  expenses        Expense[]
+  admins          Role[]
+  monthlyFee      Float
+  billingInterval DateTime
+  billingDay      DateTime
+  paymentMethods  PaymentMethod[]
+  outstandingFees Earning[]       @relation("OrganizationOutstandingMembershipFees")
+  earnings        Earning[]       @relation("OrganizationEarnings")
+  Receipt         Receipt[]
+}
+
+model Expense {
+  id             Int          @id @default(autoincrement())
+  name           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  date           DateTime
+  value          Float
+  userId         Int
+  user           User         @relation("UserExpenses", fields: [userId], references: [id])
+  memberId       Int?
+  member         User?        @relation("UserOutstandingMembershipFees", fields: [memberId], references: [id])
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  receiptId      Int?
+  receipt        Receipt?     @relation(fields: [receiptId], references: [id])
+}
+
+model Role {
+  id             Int           @id @default(autoincrement())
+  name           String        @unique
+  global         Boolean
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  users          User[]
+}
+
+model Receipt {
+  id             Int          @id @default(autoincrement())
+  name           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  date           DateTime
+  value          Float
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  picture        String
+  Expense        Expense[]
+}
+
+model PaymentMethod {
+  id             Int           @id @default(autoincrement())
+  name           String
+  method         String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId Int?
+  Earning        Earning[]
+}
+
+model Earning {
+  id              Int           @id @default(autoincrement())
+  name            String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  date            DateTime
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id])
+  value           Float
+  oranizationId   Int
+  organization    Organization  @relation("OrganizationEarnings", fields: [oranizationId], references: [id])
+  feeId           Int?
+  organizationFee Organization? @relation("OrganizationOutstandingMembershipFees", fields: [feeId], references: [id])
+  receipt         String?
+  paymentMethodId Int
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+}
